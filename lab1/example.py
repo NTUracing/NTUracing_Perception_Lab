@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 class plant:
     def __init__(self):
-        self.bias=0
+        self.bias=0.01
         self.yaw=0
         self.vyaw=0
         self.time=0
@@ -16,7 +16,7 @@ class plant:
 
     def update(self,dt):
         self.yaw=self.yaw+self.vyaw*dt
-        self.bias=self.bias+np.random.normal(self.bias_mu, self.bias_sig, 1)[0]# comment this line to make the bias be constant(remember to give it a value in __init__)
+        #self.bias=self.bias+np.random.normal(self.bias_mu, self.bias_sig, 1)[0]# comment this line to make the bias be constant(remember to give it a value in __init__)
         self.time+=dt
 
     def get_rate(self):
@@ -33,8 +33,8 @@ class plant:
 
     def routine(self,per):
         while(self.flag):
-            self.set_vyaw(0.5*m.cos(0.5*self.time+0.3))# comment this line to make vyaw constant
-            #self.set_vyaw(0.1)# uncomment this line to make vyaw constant
+            #self.set_vyaw(0.5*m.cos(0.5*self.time+0.3))# comment this line to make vyaw constant
+            self.set_vyaw(0.1)# uncomment this line to make vyaw constant
             self.update(per)
             time.sleep(0.00001)
 
@@ -43,21 +43,24 @@ class plant:
 
 class observer:
     def __init__(self,newL):
-        self.x=np.zeros((2,1))# state vector
-        self.A=np.eye(2)# Transition Matrix
-        self.B=np.array([[0.],[0.]])# Control Matrix
-        self.C=np.array([[1.,0.]])# Observation Matrix
-        self.L=newL# assign the gain L outside the class
+        self.x=np.zeros((2,1))
+        
+        self.A=np.eye(2)
+
+        self.B=np.array([[0.],[0.]])
+        self.C=np.array([[1.,0.]])
+        self.L=newL
+
         self.lastT=0
 
     def update(self,yaw,vyaw,t):
-        #-------------------------#
-        # Fill the blank here!!!!!#
-        #-------------------------#
-        # ex. self.x = ......
-        # Our goal is to update the state x so that it will converge to the actual value of the boat(plant)
-        # The input is measured value (yaw, yaw rate(vyaw)) in time t.
-        # We will return a 3*1 numpy matrix which is [[x1],[x2],[time]]. I've done it for you so just calculate self.x
+        dt=t-self.lastT
+        self.A[0,1]=-dt
+        self.B[0,0]=dt
+        self.x=self.A.dot(self.x)+self.B*vyaw
+        self.x=self.x+self.L.dot(np.array([[yaw]])-self.C.dot(self.x))
+        self.lastT=t
+
         result=np.zeros((3,1))
         result[0:2,:]=self.x
         result[2,:]=t
